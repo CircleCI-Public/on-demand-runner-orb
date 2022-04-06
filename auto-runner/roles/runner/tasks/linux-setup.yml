@@ -1,0 +1,134 @@
+---
+- name: Create temporary CircleCI Directory
+  tempfile:
+    state: directory
+    suffix: "_circleci"
+    path: "/tmp/"
+  register: runner_temp_dir
+
+- name: Download Launch Agent Checksum File
+  get_url:
+    url: "{{ LAUNCH_AGENT_BASE_URL }}/{{ LAUNCH_AGENT_VERSION }}/checksums.txt"
+    dest: "{{ runner_temp_dir.path }}"
+
+- name: Grab Checksum and Filename Values
+  command: "grep -F '{{ ansible_system | lower }}/{{ arch }}' {{ runner_temp_dir.path }}/checksums.txt"
+  register: checksum_and_filename
+
+- name: Grab Checksum for given Launch Agent Version
+  set_fact:
+    checksum: "{{ checksum_and_filename.stdout.split(' ')[0] }}"
+
+- name: Download Launch Agent Binary
+  command: "curl --compressed -L '{{ LAUNCH_AGENT_BASE_URL }}/{{ LAUNCH_AGENT_VERSION }}/{{ ansible_system | lower }}/{{ arch }}/circleci-launch-agent' -o '{{ runner_temp_dir.path  }}/circleci-launch-agent'"
+
+- name: Generate Downloaded Launch Agent Binary Checksum
+  stat:
+    path: "{{ runner_temp_dir.path  }}/circleci-launch-agent"
+    checksum_algorithm: sha256
+  register: launch_agent_stat
+
+- name: Remove Launch Agent Binary if checksum mismatch
+  file:
+    path: "{{ runner_temp_dir.path  }}/circleci-launch-agent"
+    state: absent
+  when: launch_agent_stat.stat.checksum != checksum
+
+- fail:
+    msg: "Launch Agent Checksums do not match!"
+  when: launch_agent_stat.stat.checksum != checksum
+
+- name: Create CircleCI User - {{ CIRCLECI_USER }}
+  user:
+    name: "{{ CIRCLECI_USER }}"
+
+- name: Create working directory
+  file:
+    path: "{{ LAUNCH_AGENT_DIR }}/workdir"
+    state: directory
+    owner: "{{ CIRCLECI_USER }}"
+    group: "{{ CIRCLECI_USER }}"
+
+- name: Move Launch Agent to {{ LAUNCH_AGENT_DIR }}
+  copy:
+    src: "{{ runner_temp_dir.path  }}/circleci-launch-agent"
+    dest: "{{ LAUNCH_AGENT_DIR }}/circleci-launch-agent"
+    mode: 0700
+    owner: root
+    group: root
+    remote_src: yes
+
+- name: Delete temporary CircleCI Directory
+  file:
+    path: "{{ runner_temp_dir.path }}"
+    state: absent
+  when: runner_temp_dir.path is defined
+
+- name: Template launch-agent-config.yaml
+  template:
+    src: "linux-launch-agent-config.yaml.j2"
+    dest: "{{ LAUNCH_AGENT_DIR }}/launch-agent-config.yaml"
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Configure SELinux policy (RHEL 8)
+  block:
+    - name: Install policycoreutils-devel and rpm-build
+      yum:
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - policycoreutils-devel
+          - rpm-build
+
+    - name: Create policy directory
+      file:
+        path: "{{ LAUNCH_AGENT_DIR }}/policy"
+        state: directory
+        owner: root
+        group: root
+
+    - name: Generate CircleCI Policy
+      command: sepolicy generate --path {{ LAUNCH_AGENT_DIR }}/policy --init {{ LAUNCH_AGENT_DIR }}/circleci-launch-agent
+
+    - name: Download circleci_launch_agent.te
+      get_url:
+        url: "https://raw.githubusercontent.com/CircleCI-Public/runner-installation-files/main/rhel8-install/circleci_launch_agent.te"
+        dest: "{{ LAUNCH_AGENT_DIR }}/policy/circleci_launch_agent.te"
+        force: yes
+
+    - name: Run circleci_launch_agent.sh
+      command: "{{ LAUNCH_AGENT_DIR }}/policy/circleci_launch_agent.sh"
+  when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "8"
+
+- name: Template circleci.service
+  template:
+    src: "circleci.service.j2"
+    dest: "{{ LAUNCH_AGENT_DIR }}/circleci.service"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create a symlink between CircleCI Policies
+  file:
+    src: "{{ LAUNCH_AGENT_DIR }}/circleci.service"
+    dest: "/etc/systemd/system/circleci.service"
+    owner: root
+    group: root
+    state: link
+    mode: 0755
+
+- name: Stop CircleCI Service
+  systemd:
+    name: "circleci"
+    enabled: yes
+    state: stopped
+    daemon_reload: yes
+
+- name: Start CircleCI Service
+  systemd:
+    name: "circleci"
+    enabled: yes
+    state: started
+    daemon_reload: yes

@@ -1,0 +1,11 @@
+---
+plugin: aws_ec2
+hostnames:
+  - ip-address
+regions:
+  - {{ REGION }}
+filters:
+  instance-state-name : running
+  key-name:
+    - {{ SSH_KEY_NAME }}
+  tag:Name: {{ NAMESPACE }}-{{ RESOURCE_CLASS }}-*

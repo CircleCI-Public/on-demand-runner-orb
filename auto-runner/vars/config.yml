@@ -1,0 +1,34 @@
+# # Controls if a resource class should be generated
+# # Leave as defaults unless testing
+# RESOURCE_CLASS_CREATION: true
+# RUNNER_TOKEN_CREATION: true
+
+# # CircleCI Namespace and valid CIRCLE Token for working with the API
+# NAMESPACE:
+# RESOURCE_CLASS:
+# CIRCLE_TOKEN:
+
+# # The AWS host you want to target. Usually going to be the Public IP Address
+# # Need to use the AWS EC2 dynamic inventory
+# target_hosts:
+# TEMPLATE_DYNAMIC_INVENTORY: true
+
+# # Cloud provider you want to work with
+# # Currently only support AWS
+# CLOUD_PROVIDER: "aws"
+
+# # AWS Settings
+# SSH_KEY_NAME:
+# VPC_ID:
+# INSTANCE_TYPE:
+# SECURITY_GROUP:
+# AMI_ID:
+# REGION:
+
+# # Number of on demand runners to be spun up
+# NUMBER_OF_RUNNERS: 1
+
+# # Number of waits or "retries" Ansible will wait for the EC2 instance(s) to be provisioned
+# # 10 Seconds between each retry
+# # 10 sec * 18 = 3 Mins
+# UNTIL_RETRIES_RUNNERS: "18"

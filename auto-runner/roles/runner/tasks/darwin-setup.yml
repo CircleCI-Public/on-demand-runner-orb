@@ -1,0 +1,100 @@
+---
+- name: Create temporary CircleCI Directory
+  tempfile:
+    state: directory
+    suffix: "_circleci"
+    path: "/tmp/"
+  register: runner_temp_dir
+
+- name: Download Launch Agent Checksum File
+  get_url:
+    url: "{{ LAUNCH_AGENT_BASE_URL }}/{{ LAUNCH_AGENT_VERSION }}/checksums.txt"
+    dest: "{{ runner_temp_dir.path }}"
+
+- name: Grab Checksum and Filename Values
+  command: "grep -F '{{ ansible_system | lower }}/{{ arch }}' {{ runner_temp_dir.path }}/checksums.txt"
+  register: checksum_and_filename
+
+- name: Grab Checksum for given Launch Agent Version
+  set_fact:
+    checksum: "{{ checksum_and_filename.stdout.split(' ')[0] }}"
+
+- name: Download Launch Agent Binary
+  command: "curl --compressed -L '{{ LAUNCH_AGENT_BASE_URL }}/{{ LAUNCH_AGENT_VERSION }}/{{ ansible_system | lower }}/{{ arch }}/circleci-launch-agent' -o '{{ runner_temp_dir.path  }}/circleci-launch-agent'"
+
+- name: Generate Downloaded Launch Agent Binary Checksum
+  stat:
+    path: "{{ runner_temp_dir.path  }}/circleci-launch-agent"
+    checksum_algorithm: sha256
+  register: launch_agent_stat
+
+- name: Remove Launch Agent Binary if checksum mismatch
+  file:
+    path: "{{ runner_temp_dir.path  }}/circleci-launch-agent"
+    state: absent
+  when: launch_agent_stat.stat.checksum != checksum
+
+- fail:
+    msg: "Launch Agent Checksums do not match!"
+  when: launch_agent_stat.stat.checksum != checksum
+
+- name: Create CircleCI User - {{ CIRCLECI_USER }}
+  user:
+    name: "{{ CIRCLECI_USER }}"
+
+- name: Create working directory
+  file:
+    path: "{{ LAUNCH_AGENT_DIR }}/workdir"
+    state: directory
+    owner: "{{ CIRCLECI_USER }}"
+    group: "staff"
+
+- name: Move Launch Agent to {{ LAUNCH_AGENT_DIR }}
+  copy:
+    src: "{{ runner_temp_dir.path  }}/circleci-launch-agent"
+    dest: "{{ LAUNCH_AGENT_DIR }}/circleci-launch-agent"
+    mode: 0700
+    owner: root
+    group: wheel
+    remote_src: yes
+
+- name: Delete temporary CircleCI Directory
+  file:
+    path: "{{ runner_temp_dir.path }}"
+    state: absent
+  when: runner_temp_dir.path is defined
+
+- name: Create Mac Program Directory
+  file:
+    path: "/Library/Preferences/com.circleci.runner"
+    state: directory
+    owner: root
+    group: wheel
+
+- name: Template launch-agent-config.yaml
+  template:
+    src: "darwin-launch-agent-config.yaml.j2"
+    dest: "/Library/Preferences/com.circleci.runner/launch-agent-config.yaml"
+    owner: root
+    group: wheel
+    mode: 0600
+
+- name: Copy com.circleci.runner.plist
+  copy:
+    src: "com.circleci.runner.plist"
+    dest: "/Library/LaunchDaemons/com.circleci.runner.plist"
+    owner: root
+    group: wheel
+    mode: 0644
+
+- name: Stop CircleCI Service
+  community.general.launchd:
+    name: com.circleci.runner
+    state: stopped
+    enabled: yes
+
+- name: Start CircleCI Service
+  community.general.launchd:
+    name: com.circleci.runner
+    state: started
+    enabled: yes

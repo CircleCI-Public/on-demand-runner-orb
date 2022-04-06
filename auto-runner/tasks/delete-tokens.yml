@@ -1,0 +1,23 @@
+---
+- name: Get List of Tokens for {{ NAMESPACE }}/{{ RESOURCE_CLASS }}
+  uri:
+    url: https://runner.circleci.com/api/v2/runner/token?resource-class={{ NAMESPACE }}/{{ RESOURCE_CLASS }}
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      circle-token: "{{ CIRCLE_TOKEN }}"
+  register: result
+
+- name: Pull out List Tokens for {{ NAMESPACE }}/{{ RESOURCE_CLASS }}
+  set_fact:
+    token_list: "{{ result.json | json_query('items[*].id') }}"
+
+- name: Delete Tokens from {{ NAMESPACE }}/{{ RESOURCE_CLASS }}
+  uri:
+    url: https://runner.circleci.com/api/v2/runner/token/{{ item }}
+    method: DELETE
+    status_code: 204
+    headers:
+      circle-token: "{{ CIRCLE_TOKEN }}"
+  with_items: "{{ token_list }}"

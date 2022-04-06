@@ -1,0 +1,29 @@
+description: >
+  Deploy an On Demand Runner, Do Testing on the Runner and Destroy the On Demand Runner
+usage:
+  version: 2.1
+
+  orbs:
+    on-demand-runner: cci-labs/on-demand-runner@1.0.0
+
+  jobs:
+    run-test-on-runner:
+      machine: true
+      resource_class: NAMESPACE/<< pipeline.id >>
+      steps:
+        - run: echo "Hello World! I am running on a On Demand Runner!"
+
+  workflows:
+    example-workflow:
+      jobs:
+        - on-demand-runner/deploy:
+            resource_class: << pipeline.id >>
+            context: aws-creds
+        - run-test-on-runner:
+            requires:
+              - on-demand-runner/deploy
+        - on-demand-runner/destroy:
+            resource_class: << pipeline.id >>
+            context: aws-creds
+            requires:
+              - "run-test-on-runner"

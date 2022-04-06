@@ -1,0 +1,27 @@
+---
+- name: Get List of Resource Classes
+  uri:
+    url: https://runner.circleci.com/api/v2/runner/resource?namespace={{ NAMESPACE }}
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      circle-token: "{{ CIRCLE_TOKEN }}"
+  register: result
+
+- name: Setting up query for JSON
+  set_fact:
+    QUERY: "items[?resource_class==`{{ NAMESPACE }}/{{ RESOURCE_CLASS }}`].id"
+
+- name: Grab ID of {{ NAMESPACE }}/{{ RESOURCE_CLASS }} Resource Class
+  set_fact:
+    resource_class_ids: "{{ result.json | json_query(QUERY) }}"
+
+- name: Delete {{ NAMESPACE }}/{{ RESOURCE_CLASS }} Resource Class
+  uri:
+    url: https://runner.circleci.com/api/v2/runner/resource/{{ item }}
+    method: DELETE
+    status_code: 204
+    headers:
+      circle-token: "{{ CIRCLE_TOKEN }}"
+  with_items: "{{ resource_class_ids }}"

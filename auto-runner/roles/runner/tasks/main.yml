@@ -1,0 +1,43 @@
+---
+- name: Grab Latest Release for Launch Agent
+  uri:
+    url: "{{ LAUNCH_AGENT_BASE_URL }}/release.txt"
+    return_content: yes
+  register: release_info
+
+- name: Setting Launch Agent Version - [ Non-Server Install ]
+  set_fact:
+    LAUNCH_AGENT_VERSION: "{{ release_info.content[:-1] }}"
+  when: LAUNCH_AGENT_VERSION == None and SERVER_INSTALL | bool == false
+
+- name: Check if LAUNCH_AGENT_VERSION is not set and SERVER_INSTALL is true
+  fail:
+    msg: "You are trying to install Runner on Server with out having LAUNCH_AGENT_VERSION set. Please refer to https://circleci.com/docs/2.0/runner-installation/#runner-for-server-compatibility"
+  when: LAUNCH_AGENT_VERSION == None and SERVER_INSTALL | bool == true
+
+- name: Format Architecture Name - x86_64 to amd64
+  set_fact:
+    arch: "amd64"
+  when: ansible_architecture == 'x86_64'
+
+- name: Format Architecture Name - aarch64 to arm64
+  set_fact:
+    arch: "arm64"
+  when: ansible_architecture == 'aarch64'
+
+- name: Format Architecture Name - Other Architectures
+  set_fact:
+    arch: "{{ ansible_architecture }}"
+  when: ansible_architecture != 'x86_64' and ansible_architecture != 'aarch64'
+
+- name: Configure Runner for Linux
+  include_tasks: linux-setup.yml
+  when: ansible_system == "Linux"
+
+# - name: Configure Runner for Windows
+#   include_tasks: windows-setup.yml
+#   when: ansible_system == "Win32NT"
+
+- name: Configure Runner for MacOS
+  include_tasks: darwin-setup.yml
+  when: ansible_system == "Darwin"

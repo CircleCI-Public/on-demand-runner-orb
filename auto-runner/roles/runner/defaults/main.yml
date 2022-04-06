@@ -1,0 +1,12 @@
+---
+# General Settings
+LAUNCH_AGENT_BASE_URL: "https://circleci-binary-releases.s3.amazonaws.com/circleci-launch-agent"
+LAUNCH_AGENT_DIR: "/opt/circleci"
+
+SERVER_INSTALL: false
+CIRCLECI_USER: "circleci"
+
+# Launch Agent Config Settings
+CLEANUP_WORKING_DIR: true
+TIMEOUT_STOP_SEC: 18300
+RUNNER_NICKNAME: "{{ ansible_hostname }}"

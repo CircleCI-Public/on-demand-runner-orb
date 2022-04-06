@@ -1,0 +1,28 @@
+---
+- name: Deprovision an On Demand Runner, Recourse Classes and Tokens
+  hosts: localhost
+
+  vars_files:
+    - vars/config.yml
+
+  pre_tasks:
+    - name: Initialize Config Variables
+      include_vars: vars/config.yml
+
+    - name: Template EC2 Dynamic Inventory to only target the On Demand Runner
+      template:
+        src: "aws_ec2.yml.j2"
+        dest: "aws_ec2.yml"
+      when: (TEMPLATE_DYNAMIC_INVENTORY | bool == true)
+
+  tasks:
+    - name: Delete Runner Auth Tokens for On Demand Runner
+      include_tasks: tasks/delete-tokens.yml
+      when: (RUNNER_TOKEN_CREATION | bool == true)
+
+    - name: Delete Resource Class for an On Demand Runner
+      include_tasks: tasks/delete-resource-class.yml
+      when: (RESOURCE_CLASS_CREATION | bool == true)
+
+    - name: Destroy an On Demand Runner for given cloud provider
+      include_tasks: tasks/deprovision.yml
