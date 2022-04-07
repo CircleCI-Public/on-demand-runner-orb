@@ -23,16 +23,16 @@ workflows:
           filters: *filters
           context: on-demand-runner-orb
           resource_class: << pipeline.id >>
-      - run-test-on-runner:
-          filters: *filters
-          requires:
-            - on-demand-runner/deploy
+      # - run-test-on-runner:
+      #     filters: *filters
+      #     requires:
+      #       - on-demand-runner/deploy
       - on-demand-runner/destroy:
           filters: *filters
           context: on-demand-runner-orb
           resource_class: << pipeline.id >>
           requires:
-            - "run-test-on-runner"
+            # - "run-test-on-runner"
             - "on-demand-runner/deploy"
       - orb-tools/pack:
           filters: *filters
