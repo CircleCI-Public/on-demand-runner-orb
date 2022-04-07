@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  on-demand-runner: cci-labs/on-demand-runner@dev:<<pipeline.git.revision>>
+  on-demand-runner: cci-labs/on-demand-runner@dev:alpha
   orb-tools: circleci/orb-tools@11.1
 
 filters: &filters
