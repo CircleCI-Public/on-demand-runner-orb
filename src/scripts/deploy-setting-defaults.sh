@@ -15,3 +15,5 @@
     echo "export CLOUD_PROVIDER=${CLOUD_PROVIDER:-aws}"
     echo "export CIRCLECI_USER=${ORB_PARAM_CIRCLECI_USER:-circleci}"
 } >> $BASH_ENV
+
+echo $BASH_ENV

@@ -21,7 +21,7 @@ workflows:
       # Make sure to include "filters: *filters" in every test job you want to run as part of your deployment.
       - on-demand-runner/deploy:
           filters: *filters
-          context: CPE_ORBS_AWS
+          context: on-demand-runner-orb
           resource_class: << pipeline.id >>
       - run-test-on-runner:
           filters: *filters
@@ -29,7 +29,7 @@ workflows:
             - on-demand-runner/deploy
       - on-demand-runner/destroy:
           filters: *filters
-          context: CPE_ORBS_AWS
+          context: on-demand-runner-orb
           resource_class: << pipeline.id >>
           requires:
             - "run-test-on-runner"

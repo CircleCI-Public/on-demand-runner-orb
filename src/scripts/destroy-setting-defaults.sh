@@ -13,3 +13,5 @@
     echo "export TEMPLATE_DYNAMIC_INVENTORY=${TEMPLATE_DYNAMIC_INVENTORY:-true}"
     echo "export CLOUD_PROVIDER=${CLOUD_PROVIDER:-aws}"
  } >> $BASH_ENV
+
+ echo $BASH_ENV
