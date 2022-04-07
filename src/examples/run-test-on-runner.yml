@@ -11,7 +11,7 @@ usage:
       machine: true
       resource_class: NAMESPACE/<< pipeline.id >>
       steps:
-        - run: echo "Hello World! I am running on a On Demand Runner!"
+        - run: echo "Hello World! I am running on an On Demand Runner!"
 
   workflows:
     example-workflow:

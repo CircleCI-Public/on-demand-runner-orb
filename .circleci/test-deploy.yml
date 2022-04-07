@@ -14,7 +14,7 @@ jobs:
     machine: true
     resource_class: crowley-namespace/<< pipeline.id >>
     steps:
-      - run: echo "Hello World! I am running on a On Demand Runner!"
+      - run: echo "Hello World! I am running on an On Demand Runner!"
 workflows:
   test-deploy:
     jobs:
