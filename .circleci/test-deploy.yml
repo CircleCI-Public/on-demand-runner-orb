@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  on-demand-runner: cci-labs/on-demand-runner@dev:alpha
+  on-demand-runner: cci-labs/on-demand-runner@dev:<<pipeline.git.revision>>
   orb-tools: circleci/orb-tools@11.1
 
 filters: &filters
@@ -19,21 +19,21 @@ workflows:
   test-deploy:
     jobs:
       # Make sure to include "filters: *filters" in every test job you want to run as part of your deployment.
-      - on-demand-runners/deploy:
+      - on-demand-runner/deploy:
           filters: *filters
           context: CPE_ORBS_AWS
           resource_class: << pipeline.id >>
       - run-test-on-runner:
           filters: *filters
           requires:
-            - on-demand-runners/deploy
-      - on-demand-runners/destroy:
+            - on-demand-runner/deploy
+      - on-demand-runner/destroy:
           filters: *filters
           context: CPE_ORBS_AWS
           resource_class: << pipeline.id >>
           requires:
             - "run-test-on-runner"
-            - "on-demand-runners/deploy"
+            - "on-demand-runner/deploy"
       - orb-tools/pack:
           filters: *filters
       - orb-tools/publish:
@@ -42,7 +42,7 @@ workflows:
           pub-type: production
           requires:
             - orb-tools/pack
-            - on-demand-runners/destroy
+            - on-demand-runner/destroy
           context: orb-publishing
           filters:
             branches:
