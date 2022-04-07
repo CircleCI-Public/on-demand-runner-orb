@@ -1,5 +1,11 @@
 description: >
   Deprovision and Remove an On Demand Runner
+  Required Environment Variables:
+    - AWS_SSH_KEY
+    - CIRCLECI_NAMESPACE
+    - CIRCLE_TOKEN
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
 
 docker:
   - image: "cimg/python:<< parameters.tag >>"

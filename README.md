@@ -5,6 +5,9 @@
 
 A orb that lets users spin up runners on the demand durning a pipeline. Users are able to provision an EC2 instance on the fly, install the runner agent, and allow the runner to accept units of work. 
 
+**Please note this orb is part of CircleCI Labs**. CircleCI Labs is a place where unsupported apps and personal project maintained by CircleCI developers can be published! 
+You will find some pretty amazing solutions under CircleCI labs, but please keep in mind CircleCI takes no responsibility for your use of these solutions. 
+
 [CircleCI Orb Registry Page](https://circleci.com/orbs/registry/orb/cci-labs/on-demand-runner)
 
 ## Why On Demand Runner?

@@ -1,5 +1,13 @@
 description: >
   Provision and Configure an On Demand Runner
+  Required Environment Variables:
+    - AWS_AMI_ID
+    - AWS_SECURITY_GROUP_ID
+    - AWS_SSH_KEY
+    - CIRCLECI_NAMESPACE
+    - CIRCLE_TOKEN
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
 
 docker:
   - image: "cimg/python:<< parameters.tag >>"
