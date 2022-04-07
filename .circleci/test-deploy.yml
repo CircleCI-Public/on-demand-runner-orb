@@ -8,21 +8,32 @@ filters: &filters
     only: /.*/
 
 jobs:
-    # Create a job to test the commands of your orbs.
-    # You may want to add additional validation steps to ensure the commands are working as expected.
-    command-tests:
-      docker:
-        - image: cimg/base:current
-      steps:
-        - checkout
-        # Run your orb's commands to validate them.
-        - on-demand-runner/greet
+  # Create a job to test the commands of your orbs.
+  # You may want to add additional validation steps to ensure the commands are working as expected.
+  run-test-on-runner:
+    machine: true
+    resource_class: crowley-namespace/<< pipeline.id >>
+    steps:
+      - run: echo "Hello World! I am running on a On Demand Runner!"
 workflows:
   test-deploy:
     jobs:
       # Make sure to include "filters: *filters" in every test job you want to run as part of your deployment.
-      - command-tests:
+      - on-demand-runners/deploy:
           filters: *filters
+          context: CPE_ORBS_AWS
+          resource_class: << pipeline.id >>
+      - run-test-on-runner:
+          filters: *filters
+          requires:
+            - on-demand-runners/deploy
+      - on-demand-runners/destroy:
+          filters: *filters
+          context: CPE_ORBS_AWS
+          resource_class: << pipeline.id >>
+          requires:
+            - "run-test-on-runner"
+            - "on-demand-runners/deploy"
       - orb-tools/pack:
           filters: *filters
       - orb-tools/publish:
@@ -31,7 +42,7 @@ workflows:
           pub-type: production
           requires:
             - orb-tools/pack
-            - command-tests
+            - on-demand-runners/destroy
           context: orb-publishing
           filters:
             branches:
