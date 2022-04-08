@@ -1,0 +1,11 @@
+[Unit]
+Description=CircleCI Runner
+After=network.target
+[Service]
+ExecStart={{ LAUNCH_AGENT_DIR }}/circleci-launch-agent --config {{ LAUNCH_AGENT_DIR }}/launch-agent-config.yaml
+Restart=always
+User=root
+NotifyAccess=exec
+TimeoutStopSec={{ TIMEOUT_STOP_SEC }}
+[Install]
+WantedBy = multi-user.target

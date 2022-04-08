@@ -1,0 +1,36 @@
+---
+- name: Start EC2 Instances
+  ec2_instance:
+    name: "{{ NAMESPACE }}-{{ RESOURCE_CLASS }}-{{ item }}"
+    region: "{{ REGION }}"
+    key_name: "{{ SSH_KEY_NAME }}"
+    vpc_subnet_id: "{{ VPC_ID }}"
+    instance_type: "{{ INSTANCE_TYPE }}"
+    security_group: "{{ SECURITY_GROUP }}"
+    network:
+      assign_public_ip: true
+    image_id: "{{ AMI_ID }}"
+    wait: false
+    state: running
+    user_data: "{{ lookup('file', 'user-data.yml') }}"
+  loop: "{{ range(0, NUMBER_OF_RUNNERS | int) | list }}"
+
+- name: Gather information about any instance with Name beginning with {{ NAMESPACE }}-{{ RESOURCE_CLASS }}-*
+  ec2_instance_info:
+    filters:
+      "tag:Name": "{{ NAMESPACE }}-{{ RESOURCE_CLASS }}-{{ item }}"
+  register: ec2_info
+  until: ec2_info.instances[0].state.name == "running"
+  retries: "{{ UNTIL_RETRIES_RUNNERS }}"
+  delay: 10
+  loop: "{{ range(0, NUMBER_OF_RUNNERS | int) | list }}"
+
+- name: Check if SSH is Available
+  wait_for: host="{{ item.instances[0].public_ip_address }}" port=22 delay=10  timeout=300
+  with_items: "{{ ec2_info.results }}"
+
+- name: Template EC2 Dynamic Inventory to only target On Demand Runners
+  template:
+    src: "aws_ec2.yml.j2"
+    dest: "aws_ec2.yml"
+  when: (TEMPLATE_DYNAMIC_INVENTORY | bool == true )

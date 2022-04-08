@@ -1,0 +1,22 @@
+---
+- name: Generate Runner Token
+  uri:
+    url: https://runner.circleci.com/api/v2/runner/token
+    method: POST
+    body_format: json
+    body:
+      {
+        "resource_class": "{{ NAMESPACE }}/{{ RESOURCE_CLASS }}",
+        "nickname": "On demand Runner!",
+      }
+    status_code: 201
+    return_content: yes
+    headers:
+      circle-token: "{{ CIRCLE_TOKEN }}"
+  register: result
+  delegate_to: 127.0.0.1
+
+- name: Setting AUTH_TOKEN
+  set_fact:
+    AUTH_TOKEN: "{{ result.json.token }}"
+  delegate_to: 127.0.0.1

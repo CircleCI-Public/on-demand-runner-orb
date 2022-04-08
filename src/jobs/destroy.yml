@@ -1,0 +1,115 @@
+description: >
+  Deprovision and Remove an On Demand Runner
+  Required Environment Variables:
+    - AWS_SSH_KEY
+    - CIRCLECI_NAMESPACE
+    - CIRCLE_TOKEN
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+
+docker:
+  - image: "cimg/python:<< parameters.tag >>"
+
+parameters:
+  aws-region:
+    default: AWS_DEFAULT_REGION
+    description: |
+      Env var of AWS region to operate in. If no region is provided US-EAST-1
+      will be selected.
+    type: env_var_name
+  aws-secret-access-key:
+    default: AWS_SECRET_ACCESS_KEY
+    description: |
+      AWS secret key for IAM role. Set this to the name of
+      the environment variable you will use to hold this
+      value, i.e. $AWS_SECRET_ACCESS_KEY.
+    type: env_var_name
+  aws-access-key-id:
+    default: AWS_ACCESS_KEY_ID
+    description: |
+      AWS access key id for IAM role. Set this to the name of
+      the environment variable you will use to hold this
+      value, i.e. AWS_ACCESS_KEY_ID.
+    type: env_var_name
+  aws-ssh-key:
+    default: AWS_SSH_KEY
+    description: |
+      The name of the SSH key you want the EC2 instance(s) to have
+      injected. Please note you need to already have uploaded the key
+      to AWS to reference the SSH key name. Set this to the name of
+      the environment variable you will use to hold this value, i.e. AWS_SSH_KEY.
+    type: env_var_name
+  circle-token:
+    default: CIRCLE_TOKEN
+    description: |
+      A valid Circle token for interacting with the CircleCI API. Please see
+      https://circleci.com/docs/2.0/managing-api-tokens/ for more details.
+    type: env_var_name
+  circleci-namespace:
+    default: CIRCLECI_NAMESPACE
+    description: |
+      A CircleCI generated namespace for your organization. Please see
+      https://circleci.com/docs/2.0/orb-concepts/#namespaces for more details.
+    type: env_var_name
+  resource_class:
+    description: |
+      Name of the resource class that will be generated and used for an On Demand Runner.
+      If you do not have a resource class to use, please pass in 'pipeline.id'. Generally, it best
+      practice to pass in 'pipeline.id'. PLEASE note you need to set resource class to a
+      name that is not currently being used, as the resource class will be deleted.
+    type: string
+  number_of_runners:
+    default: NUMBER_OF_RUNNERS
+    description: |
+      Number of on demand runners to deploy. If no number is provided only 1
+      on demand runner will be deployed. PLEASE be careful setting this number.
+    type: env_var_name
+  number_of_waits:
+    default: NUMBER_OF_WAITS
+    description: |
+      Number of on waits(10 seconds each) for the EC2 instance(s) to be provisioned before failure.
+      If no number is provided 18 waits(3 minutes) will be selected.
+    type: env_var_name
+  version:
+    default: 2.9.*
+    description: Ansible Version To Be Installed
+    type: string
+  tag:
+    default: "3.10"
+    description: The `cimg/python` Docker image version tag.
+    type: string
+steps:
+  - run:
+      name: Installing Dependencies
+      command: <<include(scripts/install-dependencies.sh)>>
+      environment:
+        ORB_PARAM_ANSIBLE_VERSION: <<parameters.version>>
+
+  - run:
+      name: Setting Defaults if Variables are not Set
+      command: |
+        {
+          echo "export AWS_DEFAULT_REGION=$(echo ${<< parameters.aws-region >>:-us-east-1})"
+          echo "export RESOURCE_CLASS=$(echo ${RESOURCE_CLASS:-<< parameters.resource_class >>})"
+          echo "export NUMBER_OF_RUNNERS=$(echo ${<< parameters.number_of_runners >>:-1})"
+          echo "export NUMBER_OF_WAITS=$(echo ${<< parameters.number_of_waits >>:-18})"
+          echo "export ANSIBLE_FORCE_COLOR=$(echo ${ANSIBLE_FORCE_COLOR:-true})"
+          echo "export ANSIBLE_GIT_URL=$(echo ${ANSIBLE_GIT_URL:-https://github.com/CircleCI-Public/on-demand-runner-orb.git})"
+          echo "export ANSIBLE_GIT_BRANCH=$(echo ${ANSIBLE_GIT_BRANCH:-main})"
+          echo "export ANSIBLE_HOST_KEY_CHECKING=$(echo ${ANSIBLE_HOST_KEY_CHECKING:-false})"
+          echo "export RESOURCE_CLASS_CREATION=$(echo ${RESOURCE_CLASS_CREATION:-true})"
+          echo "export RUNNER_TOKEN_CREATION=$(echo ${RUNNER_TOKEN_CREATION:-true})"
+          echo "export TEMPLATE_DYNAMIC_INVENTORY=$(echo ${TEMPLATE_DYNAMIC_INVENTORY:-true})"
+          echo "export CLOUD_PROVIDER=$(echo ${CLOUD_PROVIDER:-aws})"
+        } >> $BASH_ENV
+
+  - run:
+      name: Clone On Demand Runner Ansible from Github
+      command: |
+        git clone ${ANSIBLE_GIT_URL} && cd ./on-demand-runner-orb && git checkout ${ANSIBLE_GIT_BRANCH}
+
+  - run:
+      name: Deprovision the On Demand Runner
+      working_directory: ~/project/on-demand-runner-orb/auto-runner/
+      command: |
+        ansible-playbook deprovision-on-demand-runner.yml -e "REGION=$AWS_DEFAULT_REGION SSH_KEY_NAME=$<< parameters.aws-ssh-key >> NAMESPACE=$<< parameters.circleci-namespace >> RESOURCE_CLASS=$RESOURCE_CLASS CIRCLE_TOKEN=$<< parameters.circle-token >> NUMBER_OF_RUNNERS=$NUMBER_OF_RUNNERS UNTIL_RETRIES_RUNNERS=$NUMBER_OF_WAITS RESOURCE_CLASS_CREATION=$RESOURCE_CLASS_CREATION RUNNER_TOKEN_CREATION=$RUNNER_TOKEN_CREATION TEMPLATE_DYNAMIC_INVENTORY=$TEMPLATE_DYNAMIC_INVENTORY CLOUD_PROVIDER=$CLOUD_PROVIDER"
