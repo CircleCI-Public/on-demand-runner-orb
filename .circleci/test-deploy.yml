@@ -38,12 +38,13 @@ workflows:
           filters: *filters
       - orb-tools/publish:
           orb-name: cci-labs/on-demand-runner
+          github-token: GHI_TOKEN
           vcs-type: << pipeline.project.type >>
           pub-type: production
           requires:
             - orb-tools/pack
             - on-demand-runner/destroy
-          context: orb-publishing
+          context: orb-publisher
           filters:
             branches:
               ignore: /.*/
